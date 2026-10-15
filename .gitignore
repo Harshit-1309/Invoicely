@@ -3,8 +3,7 @@ node_modules/
 **/node_modules/
 
 # Production builds
-dist/
-**/dist/
+backend/dist/
 dist-ssr/
 
 # Environment files and credentials
