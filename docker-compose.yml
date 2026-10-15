@@ -1,0 +1,55 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: zoho_agent_backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - PORT=3000
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/process-invoice
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: zoho_agent_frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3002:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: zoho_agent_n8n
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL_PUBLIC:-https://n8n.yourdomain.com/}
+      - GENERIC_TIMEZONE=Asia/Kolkata
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  n8n_data:

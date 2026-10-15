@@ -1,0 +1,11 @@
+{
+  "name": "zoho-agent",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "concurrently -n \"FRONTEND,BACKEND,N8N\" -c \"cyan,magenta,yellow\" \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\" \"n8n start\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,0 +1,46 @@
+# Zoho_Agent (Invoicely) - Application Overview
+
+## 1. What it is
+This project is an AI-powered automated pipeline and full-stack web application designed to handle invoice automation. It automatically fetches unread emails with invoice attachments, verifies them using an AI (LLM), extracts the required financial data from the PDFs, maps the data to the correct accounting fields, and creates official Bills in Zoho Books.
+
+The web application (branded as "Invoicely") provides a dashboard for users to authenticate (via Google/LinkedIn OAuth), view metrics, ingest invoices manually (upload or trigger email fetch), manage connections, monitor live processing queues, and review job logs.
+
+## 2. Architecture & How We Built It
+The system is divided into three main components: a React Frontend, a Node.js Backend API, and an n8n Workflow. 
+
+### A. Frontend (React / Vite)
+- **Framework:** React 19 with Vite, written in TypeScript.
+- **Styling:** TailwindCSS for responsive and modern UI/UX.
+- **Routing:** `react-router-dom` for navigation between views like Dashboard, Approvals, Bills, etc.
+- **Authentication:** Google and LinkedIn OAuth integration (`@react-oauth/google`, `react-linkedin-login-oauth2`).
+- **Features:** A rich dashboard tracking processing metrics, a file uploader to ingest PDFs manually, a queue table checking live job statuses by polling the backend, and various modules for managing vendors and accounts.
+
+### B. Backend (Node.js / Express)
+- **Framework:** Express.js, written in TypeScript.
+- **Database:** MongoDB via `mongoose` for storing metrics, logs, jobs, and user data.
+- **Key Responsibilities:**
+  - Acts as a secure bridge between n8n and the Zoho APIs (Zoho Mail, Zoho Books).
+  - Exposes an HTTP API for the frontend (e.g., `/api/metrics`, `/api/jobs`, `/api/connections`, `/api/upload`).
+  - Provides a direct endpoint (`/mcp-direct`) that n8n can hit via HTTP requests to execute tools like fetching emails and downloading binary PDF buffers.
+  - Dependencies include `google-auth-library` for backend auth validation, `axios`, and `@modelcontextprotocol/sdk`.
+
+### C. n8n Workflow (Automation Engine)
+The actual business logic and AI orchestration happen in a parallel batch processing mode within n8n:
+- **Phase 1 (Fetching & Splitting):** Triggered manually or via the frontend. It calls the local backend to pull unread emails, splits the email attachments into individual processing items, and pushes them down the pipeline simultaneously.
+- **Phase 2 (AI Verification & Extraction):** Reads the email body/subject via an LLM chain to determine if the attachment is genuinely a bill. Downloads the actual PDF, extracts raw text (handling encrypted PDFs by guessing the invoice number as the password), and uses another LLM chain to parse the raw text into structured JSON (Vendor Name, Date, Total, Line Items).
+- **Phase 3 (Chart of Accounts Mapping):** Fetches the active Chart of Accounts from Zoho Books. A final LLM chain intelligently maps the extracted line items to the correct Zoho Account IDs.
+- **Phase 4 (Zoho Integration):** A sub-workflow searches for existing Vendors in Zoho Books. It waits for human approval or automatically creates new vendors, then formats the final JSON payload and creates the official Bill in Zoho Books.
+
+## 3. Technology Stack Summary
+- **Frontend:** React 19, TypeScript, Vite, TailwindCSS, Lucide-React.
+- **Backend:** Node.js, Express, TypeScript, MongoDB (Mongoose), Google Auth Library.
+- **Automation/Integration:** n8n (self-hosted).
+- **External Services:** Zoho Mail API, Zoho Books API.
+- **AI/LLM:** Large Language Models used within n8n workflows for verification, parsing, and context mapping.
+- **Dev Tools:** `concurrently` is used in the root `package.json` to spin up the frontend, backend, and n8n instance simultaneously.
+
+## 4. How to Run
+From the root directory, running `npm start` executes a `concurrently` script that spins up all three services:
+1. `npm run dev --prefix frontend` (Starts the React UI)
+2. `npm run dev --prefix backend` (Starts the Express API)
+3. `n8n start` (Starts the automation engine)

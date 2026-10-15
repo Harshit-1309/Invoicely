@@ -1,0 +1,6 @@
+node_modules
+dist
+.env
+*.log
+.last_fetch.json
+.git
